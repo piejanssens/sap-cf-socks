@@ -1,6 +1,6 @@
 ---
 applications:
-  - name: btp-socks5
+  - name: btp-pg-socks
     memory: 128M
     services:
       - connectivity

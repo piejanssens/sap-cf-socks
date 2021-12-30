@@ -13,10 +13,12 @@ app.get('/', async (req, res) => {
   //const client = await app.locals.pool.connect()
   try {
     let pgRes = await app.locals.pool.query('SELECT * FROM "public"."db_books"')
+    res.write('<html><body>')
     pgRes.rows.forEach((row) => {
       res.write(row.name)
       res.write('<br/>')
     })
+    res.write('</body></html>')
   } catch (err) {
     console.error('Error executing query', err.stack)
     res.write('PG Error, check logs')
