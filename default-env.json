@@ -1,0 +1,9 @@
+{
+  "PG_CONNECTIVITY_ENABLED": false,
+  "PG_HOST": "192.168.1.2",
+  "PG_PORT": 5433,
+  "PG_SSL": false,
+  "PG_DB": "bookshop",
+  "PG_USERNAME": "postgres",
+  "PG_PASSWORD": "secret"
+}
