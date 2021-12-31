@@ -6,18 +6,31 @@
 const xsenv = require('@sap/xsenv')
 const https = require('https')
 const SocksClient = require('socks').SocksClient
+const net = require('net')
+const jwtCache = {
+  expiration: 0,
+  jwt: undefined,
+}
 
 const log = console.log // eslint-disable-line no-console
 
-async function _connectivityToken(credentials) {
+const connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
+if (!connectivityCredentials) {
+  throw Error(
+    'No connectivity credentials provided (local: not supported, SAP BTP: check binding)'
+  )
+}
+
+async function _connectivityToken() {
   return new Promise((resolve, reject) => {
+    log('Renewing the new connectivity access token')
     https
       .get(
-        `${credentials.token_service_url}/oauth/token?grant_type=client_credentials&response_type=token`,
+        `${connectivityCredentials.token_service_url}/oauth/token?grant_type=client_credentials&response_type=token`,
         {
           headers: {
             Authorization: `Basic ${Buffer.from(
-              `${credentials.clientid}:${credentials.clientsecret}`
+              `${connectivityCredentials.clientid}:${connectivityCredentials.clientsecret}`
             ).toString('base64')}`,
           },
         },
@@ -25,7 +38,10 @@ async function _connectivityToken(credentials) {
           const data = []
           res.on('data', (chunk) => data.push(chunk))
           res.on('end', () => {
-            resolve(JSON.parse(data.join('')).access_token)
+            let r = JSON.parse(data.join(''))
+            jwtCache.expiration = Date.now() + (r.expires_in - 60) * 1000
+            jwtCache.jwt = r.access_token
+            resolve(r.access_token)
           })
         }
       )
@@ -35,16 +51,9 @@ async function _connectivityToken(credentials) {
   })
 }
 
-async function _connectivtySocks(jwt, credentials) {
-  let sLocationBase64 = process.env.PG_CONNECTIVITY_LOCATION_ID
-    ? Buffer.from(process.env.PG_CONNECTIVITY_LOCATION_ID).toString('base64')
-    : ''
-  let iJWTLength = Buffer.byteLength(jwt, 'utf8')
-  let iLocationLength = Buffer.byteLength(sLocationBase64, 'utf8')
-  let xJWTLengthBuffer = Buffer.alloc(4)
-  xJWTLengthBuffer.writeInt32BE(iJWTLength)
-  let xLocationLengthBuffer = Buffer.alloc(1)
-  xLocationLengthBuffer.writeInt8(iLocationLength)
+async function _generateSocksClientOptions() {
+  let jwt =
+    Date.now() > jwtCache.expiration ? await _connectivityToken() : jwtCache.jwt
 
   let logAuthMessage = function (authStatusByte) {
     const msgs = [
@@ -65,10 +74,19 @@ async function _connectivtySocks(jwt, credentials) {
     }
   }
 
-  const options = {
+  let sLocationBase64 = process.env.PG_CONNECTIVITY_LOCATION_ID
+    ? Buffer.from(process.env.PG_CONNECTIVITY_LOCATION_ID).toString('base64')
+    : ''
+  let iJWTLength = Buffer.byteLength(jwt, 'utf8')
+  let iLocationLength = Buffer.byteLength(sLocationBase64, 'utf8')
+  let xJWTLengthBuffer = Buffer.alloc(4)
+  xJWTLengthBuffer.writeInt32BE(iJWTLength)
+  let xLocationLengthBuffer = Buffer.alloc(1)
+  xLocationLengthBuffer.writeInt8(iLocationLength)
+  return {
     proxy: {
-      host: credentials.onpremise_proxy_host,
-      port: parseInt(credentials.onpremise_socks5_proxy_port),
+      host: connectivityCredentials.onpremise_proxy_host,
+      port: parseInt(connectivityCredentials.onpremise_socks5_proxy_port),
       type: 5,
       custom_auth_method: 0x80,
       custom_auth_request_handler: async () => {
@@ -95,43 +113,54 @@ async function _connectivtySocks(jwt, credentials) {
       host: process.env.PG_HOST,
       port: parseInt(process.env.PG_PORT),
     },
-    timeout: 30000,
-  }
-
-  const info = await SocksClient.createConnection(options)
-  return info.socket
-}
-
-async function _connectivityStream() {
-  const connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
-
-  if (!connectivityCredentials) {
-    log(
-      'ERROR: No connectivity credentials provided (local: check env, SAP BTP: check binding)'
-    )
-    return
-  }
-
-  try {
-    let jwt = await _connectivityToken(connectivityCredentials)
-    let socket = await _connectivtySocks(jwt, connectivityCredentials)
-    return socket
-  } catch (err) {
-    log(err)
   }
 }
 
 /**
  * Creates a SOCKS5 connection to the SAP BTP Connectivity service
- * @param {Object} credentials
- * @param {string} credentials.host - Virtual hostname as defined in the SAP Cloud Connector.
- * @param {string} credentials.port - Virtual port as defined in the SAP Cloud Connector
- * @param {string} [credentials.connectivityLocationId] - The location ID for the SAP Cloud Connector connection (optional)
  */
-async function connectivityStream() {
-  return await _connectivityStream()
+async function createConnectivitySocket() {
+  let socket = new net.Socket()
+  socket.setKeepAlive(true, 60 * 60 * 1000) // TODO: no effect because BTP ends first
+  socket.setTimeout(60 * 60 * 1000) // TODO: no effect because BTP ends first
+
+  let connectSocksSocket = function () {
+    socket.connect(
+      connectivityCredentials.onpremise_socks5_proxy_port,
+      connectivityCredentials.onpremise_proxy_host,
+      async () => {
+        let options = await _generateSocksClientOptions()
+        let socksClient = new SocksClient(options)
+        socksClient.connect(socket)
+      }
+    )
+  }
+
+  socket.on('close', () => {
+    log('Connection closed, reconnecting...')
+    connectSocksSocket()
+  })
+  socket.on('error', (e) => {
+    log('Socket error: ', e.code)
+  })
+  socket.on('end', () => {
+    log('Socket ended by BTP')
+  })
+  socket.on('ready', () => {
+    log('Socket ready')
+  })
+  socket.on('timeout', () => {
+    log('Socket timeout due to inactivity')
+  })
+  socket.on('connect', () => {
+    log('Socket connected')
+  })
+
+  connectSocksSocket()
+
+  return socket
 }
 
 module.exports = {
-  connectivityStream,
+  createConnectivitySocket,
 }

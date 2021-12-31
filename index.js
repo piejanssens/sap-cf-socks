@@ -5,9 +5,8 @@ const app = express()
 const port = process.env.PORT || 3000
 const xsenv = require('@sap/xsenv')
 xsenv.loadEnv()
-
 const { Pool } = require('pg')
-const { connectivityStream } = require('./utils/connectivity')
+const { createConnectivitySocket } = require('./utils/connectivity')
 
 app.get('/', async (req, res) => {
   //const client = await app.locals.pool.connect()
@@ -30,7 +29,7 @@ app.get('/', async (req, res) => {
 
 app.listen(port, () => {
   if (process.env.PG_CONNECTIVITY_ENABLED === 'true') {
-    connectivityStream().then((socket) => {
+    createConnectivitySocket().then((socket) => {
       app.locals.pool = new Pool({
         host: 'localhost',
         port: parseInt(process.env.PG_PORT || 5432),
