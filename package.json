@@ -1,16 +1,25 @@
 {
-  "name": "btp-pg-socks",
-  "version": "1.0.0",
+  "name": "sap-cf-socks",
+  "version": "0.1.0",
+  "description": "This module provides a net.Socket for TCP communication via SAP Cloud Connector using the SAP BTP Connectivity service.",
   "main": "index.js",
-  "engines": {
-    "node": "14",
-    "npm": "8"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/piejanssens/sap-cf-socks"
   },
-  "scripts": {
-    "start": "node index.js"
-  },
-  "author": "Pieter Janssens",
-  "license": "ISC",
+  "keywords": [
+    "SAP",
+    "CF",
+    "BTP",
+    "cloud",
+    "foundry",
+    "destinations",
+    "connectivity",
+    "proxy",
+    "socks"
+  ],
+  "author": "Pieter Janssens <pieter@cubit.be>",
+  "license": "Apache-2.0",
   "dependencies": {
     "@sap/xsenv": "^3.1.0",
     "express": "^4.17.1",

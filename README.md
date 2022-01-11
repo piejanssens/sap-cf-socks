@@ -1,19 +1,28 @@
-# Test connectivity to pg
+# SAP BTP Cloud Foundry TCP connectvity via SAP Cloud Connector
 
-## Requirements
+## Intro
 
-- local Postgres DB
-- database with books table at least a column 'name' (or change the query)
-- SAP Cloud Connector with TCP connection enabled to the postgres host
+This package provides a drop in solution to communicate with an on-premise host over TCP communication. The connection is established using the SAP BTP Connectivity service. This module will provide a net.Socket.
 
-## Deploy to CF
+## Prerequisites
 
-`cf push`
+- SAP Cloud Connector with TCP connection enabled to the TCP host
+- BTP subaccount connected to the SAP Cloud Connector
+- Cloud Foundry app bound to SAP BTP Connectivity service
 
-## Test
+## Installation
 
-access the root of deployed application and it should print out all book names
+`npm i sap-cf-socks`
 
-## To be confirmed
+## Usage
 
-It appears that SAP BTP will end() the exactly socket 1m after socks5 handshake, but this is extended by 10s for every TCP traffic
+```javascript
+const cfs = require('sap-cf-socks')
+const socket = cfs.getSocket()
+```
+
+## References
+
+- cds-pg
+- Apache Kafka
+- ... (please add your examples)
