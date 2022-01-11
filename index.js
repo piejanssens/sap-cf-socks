@@ -9,6 +9,9 @@ const connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
 module.exports = ConnectivitySocks
 
 class ConnectivitySocks {
+  #jwtCache
+  #socket
+
   constructor() {
     if (!connectivityCredentials) {
       throw Error(
