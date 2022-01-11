@@ -125,7 +125,7 @@ class ConnectivitySocks {
     this.#socket.setKeepAlive(true, 60 * 60 * 1000) // TODO: no effect because BTP ends first
     this.#socket.setTimeout(60 * 60 * 1000) // TODO: no effect because BTP ends first
 
-    let connectSocksSocket = function () {
+    let connectSocksSocket = () => {
       this.#socket.connect(
         this.#connectivityCredentials.onpremise_socks5_proxy_port,
         this.#connectivityCredentials.onpremise_proxy_host,
