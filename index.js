@@ -6,19 +6,20 @@ const https = require('https')
 const { SocksClient } = require('socks')
 const net = require('net')
 const log = console.log // eslint-disable-line no-console
-const connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
 
 class ConnectivitySocks {
   #jwtCache
   #socket
+  #connectivityCredentials
 
   constructor() {
-    if (!connectivityCredentials) {
+    xsenv.loadEnv()
+    this.#connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
+    if (!this.#connectivityCredentials) {
       throw Error(
         'No connectivity credentials provided (local: not supported, SAP BTP: check binding)'
       )
     }
-    xsenv.loadEnv()
     this.#jwtCache = {
       expiration: 0,
       jwt: undefined,
@@ -31,11 +32,15 @@ class ConnectivitySocks {
       log('Renewing the new connectivity access token')
       https
         .get(
-          `${connectivityCredentials.token_service_url}/oauth/token?grant_type=client_credentials&response_type=token`,
+          `${
+            this.#connectivityCredentials.token_service_url
+          }/oauth/token?grant_type=client_credentials&response_type=token`,
           {
             headers: {
               Authorization: `Basic ${Buffer.from(
-                `${connectivityCredentials.clientid}:${connectivityCredentials.clientsecret}`
+                `${this.#connectivityCredentials.clientid}:${
+                  this.#connectivityCredentials.clientsecret
+                }`
               ).toString('base64')}`,
             },
           },
@@ -82,8 +87,10 @@ class ConnectivitySocks {
     xLocationLengthBuffer.writeInt8(iLocationLength)
     return {
       proxy: {
-        host: connectivityCredentials.onpremise_proxy_host,
-        port: parseInt(connectivityCredentials.onpremise_socks5_proxy_port),
+        host: this.#connectivityCredentials.onpremise_proxy_host,
+        port: parseInt(
+          this.#connectivityCredentials.onpremise_socks5_proxy_port
+        ),
         type: 5,
         custom_auth_method: 0x80,
         custom_auth_request_handler: async () => {
@@ -120,8 +127,8 @@ class ConnectivitySocks {
 
     let connectSocksSocket = function () {
       this.#socket.connect(
-        connectivityCredentials.onpremise_socks5_proxy_port,
-        connectivityCredentials.onpremise_proxy_host,
+        this.#connectivityCredentials.onpremise_socks5_proxy_port,
+        this.#connectivityCredentials.onpremise_proxy_host,
         async () => {
           let options = await this.#generateSocksClientOptions()
           let socksClient = new SocksClient(options)
