@@ -168,4 +168,4 @@ class ConnectivitySocks {
   }
 }
 
-module.exports = ConnectivitySocks
+module.exports.ConnectivitySocks = ConnectivitySocks
