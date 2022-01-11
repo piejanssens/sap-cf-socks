@@ -24,7 +24,7 @@ class ConnectivitySocks {
       expiration: 0,
       jwt: undefined,
     }
-    createSocket()
+    this.#createSocket()
   }
 
   async #connectivityToken() {
