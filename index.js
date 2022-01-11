@@ -1,3 +1,5 @@
+'use strict'
+
 const { socksAuthMessages } = require('./lib/socks-messages')
 const xsenv = require('@sap/xsenv')
 const https = require('https')
