@@ -17,12 +17,11 @@ This package provides a drop in solution to communicate with an on-premise host 
 ## Usage
 
 ```javascript
-const cfs = require('sap-cf-socks')
-const socket = cfs.getSocket()
+ (const { ConnectivitySocks } = require('sap-cf-socks')
+const socket = new ConnectivitySocks().getSocket() // returns net.Socket
 ```
 
 ## References
 
 - cds-pg
-- Apache Kafka
 - ... (please add your examples)
