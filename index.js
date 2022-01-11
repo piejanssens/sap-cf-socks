@@ -6,8 +6,6 @@ const net = require('net')
 const log = console.log // eslint-disable-line no-console
 const connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
 
-module.exports = ConnectivitySocks
-
 class ConnectivitySocks {
   #jwtCache
   #socket
@@ -160,3 +158,5 @@ class ConnectivitySocks {
     return this.#socket
   }
 }
+
+module.exports = ConnectivitySocks
