@@ -1,7 +1,7 @@
 const { socksAuthMessages } = require('./lib/socks-messages')
 const xsenv = require('@sap/xsenv')
 const https = require('https')
-const SocksClient = require('socks').SocksClient
+const { SocksClient } = require('socks')
 const net = require('net')
 const log = console.log // eslint-disable-line no-console
 const connectivityCredentials = xsenv.cfServiceCredentials('connectivity')
@@ -18,6 +18,7 @@ class ConnectivitySocks {
         'No connectivity credentials provided (local: not supported, SAP BTP: check binding)'
       )
     }
+    xsenv.loadEnv()
     this.#jwtCache = {
       expiration: 0,
       jwt: undefined,
